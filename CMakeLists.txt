@@ -1,59 +1,56 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.1)
+cmake_minimum_required(VERSION 3.16)
+project(CuteLogger VERSION 1.0 LANGUAGES CXX)
 
-SET(CMAKE_CXX_STANDARD 17)
-SET(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-project(CuteLogger)
+find_package(QT NAMES Qt5 Qt6 REQUIRED COMPONENTS Core)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED)
 
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
-ADD_DEFINITIONS(-DCUTELOGGER_LIBRARY)
-INCLUDE_DIRECTORIES(BEFORE include)
+qt_standard_project_setup()
 
-SET(sources
-  src/Logger.cpp
-  src/AbstractAppender.cpp
-  src/AbstractStringAppender.cpp
-  src/ConsoleAppender.cpp
-  src/FileAppender.cpp
-  src/RollingFileAppender.cpp
+qt_add_library(CuteLogger
+    include/AbstractAppender.h
+    include/AbstractStringAppender.h
+    include/ConsoleAppender.h
+    include/CuteLogger_global.h
+    include/FileAppender.h
+    include/Logger.h
+    include/RollingFileAppender.h
+    src/AbstractAppender.cpp
+    src/AbstractStringAppender.cpp
+    src/ConsoleAppender.cpp
+    src/FileAppender.cpp
+    src/Logger.cpp
+    src/RollingFileAppender.cpp
+)
+target_include_directories(CuteLogger PUBLIC
+    include
 )
 
-SET(includes
-  include/Logger.h
-  include/FileAppender.h
-  include/CuteLogger_global.h
-  include/ConsoleAppender.h
-  include/AbstractStringAppender.h
-  include/AbstractAppender.h
-  include/RollingFileAppender.h
+target_compile_definitions(CuteLogger PUBLIC
+    CUTELOGGER_LIBRARY
 )
 
-
-# OutputDebugAppender is only for Windows systems
-IF(WIN32)
-  SET(sources ${sources} src/OutputDebugAppender.cpp)
-  SET(includes ${includes} include/OutputDebugAppender.h)
-ENDIF(WIN32)
-
-
-SET(library_target CuteLogger)
-
-ADD_LIBRARY(${library_target} SHARED ${sources} ${includes})
-TARGET_LINK_LIBRARIES(
-  ${library_target}
-  Qt${QT_VERSION_MAJOR}::Core
+target_link_libraries(CuteLogger PUBLIC
+    Qt::Core
 )
-target_include_directories(${library_target} PUBLIC include)
 
-INSTALL(TARGETS ${library_target} DESTINATION lib)
+if(WIN32)
+    target_sources(CuteLogger PUBLIC
+        include/OutputDebugAppender.h
+        src/OutputDebugAppender.cpp
+    )
+endif()
 
-SET(ENABLE_TESTS OFF CACHE BOOL "Enable building CuteLogger tests")
-IF (ENABLE_TESTS)
-  SET(CMAKE_AUTOMOC ON)
-  FIND_PACKAGE(Qt5Test REQUIRED)
+if(ANDROID)
+    target_sources(CuteLogger PUBLIC
+        include/AndroidAppender.h
+        src/AndroidAppender.cpp
+    )
+endif()
 
-  ADD_EXECUTABLE(basictest test/basictest.cpp)
-  TARGET_LINK_LIBRARIES(basictest Qt5::Core Qt5::Test CuteLogger)
-ENDIF ()
+install(TARGETS CuteLogger
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    FRAMEWORK DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
